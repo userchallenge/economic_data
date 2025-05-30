@@ -30,19 +30,24 @@ logger = logging.getLogger(__name__)
 CONFIG = "config/config.ini"
 config = configparser.ConfigParser()
 config.read(CONFIG)
+
 API_KEY_FRED = config["API_KEYS"]["FRED"]
+FROM_DATE = config["DATE_RANGE"]["FROM_DATE"]
+TO_DATE = config["DATE_RANGE"]["TO_DATE"]
 
 
 def main():
     logger.info("Starting economic data extraction and transformation...")
 
     # Extract
-    eurostat_hicp_json = fetch_eurostat_json("prc_hicp_mmor")
-    eurostat_unemployment_json = fetch_eurostat_json("ei_lmhr_m")
-    ecb_interest_json = fetch_ecb_json("FM", "B.U2.EUR.4F.KR.MRR_FR.LEV")
-    fred_unemployment_json = fetch_fred_json("UNRATE", API_KEY_FRED)
-    fred_cpi_json = fetch_fred_json("CPIAUCSL", API_KEY_FRED)
-    fred_fedfunds_json = fetch_fred_json("DFF", API_KEY_FRED)
+    eurostat_hicp_json = fetch_eurostat_json("prc_hicp_mmor", FROM_DATE)
+    eurostat_unemployment_json = fetch_eurostat_json("ei_lmhr_m", FROM_DATE)
+    ecb_interest_json = fetch_ecb_json(
+        "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV", FROM_DATE, TO_DATE
+    )
+    fred_unemployment_json = fetch_fred_json("UNRATE", API_KEY_FRED, FROM_DATE, TO_DATE)
+    fred_cpi_json = fetch_fred_json("CPIAUCSL", API_KEY_FRED, FROM_DATE, TO_DATE)
+    fred_fedfunds_json = fetch_fred_json("DFF", API_KEY_FRED, FROM_DATE, TO_DATE)
 
     # Transform
     hicp_euro_df = eurostat_json_to_df(eurostat_hicp_json, "prc_hicp_mmor")
@@ -51,9 +56,9 @@ def main():
         ecb_interest_json, "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV"
     )
 
-    us_unemployment_df = fred_json_to_df(fred_unemployment_json)
-    us_cpi_df = fred_json_to_df(fred_cpi_json)
-    us_fed_funds_rate_df = fred_json_to_df(fred_fedfunds_json)
+    us_unemployment_df = fred_json_to_df(fred_unemployment_json, FROM_DATE)
+    us_cpi_df = fred_json_to_df(fred_cpi_json, FROM_DATE)
+    us_fed_funds_rate_df = fred_json_to_df(fred_fedfunds_json, FROM_DATE)
 
     dfs_to_merge = []
     label_and_append(
@@ -79,7 +84,9 @@ def main():
         dfs_to_merge,
     )
     # add ECB interest rate with monthly frequency
-    ecb_monthly_interest_rate_df = set_monthly_ecb_interest_rate(ecb_interest_rate_df)
+    ecb_monthly_interest_rate_df = set_monthly_ecb_interest_rate(
+        ecb_interest_rate_df, FROM_DATE
+    )
     label_and_append(
         ecb_monthly_interest_rate_df,
         "Eurozone Monthly Interest Rate (Main Refinancing Operations)",
@@ -104,7 +111,7 @@ def main():
         "Percent",
         dfs_to_merge,
     )
-    # TODO: Hantera de indikatorer som inte har fått rätt namn
+
     if dfs_to_merge:
         final_df = pd.concat(dfs_to_merge, ignore_index=True)
         # rename indicators for clarity
