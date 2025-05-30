@@ -104,7 +104,7 @@ def main():
         "Percent",
         dfs_to_merge,
     )
-
+    # TODO: Hantera de indikatorer som inte har fått rätt namn
     if dfs_to_merge:
         final_df = pd.concat(dfs_to_merge, ignore_index=True)
         # rename indicators for clarity
