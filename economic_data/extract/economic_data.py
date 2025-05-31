@@ -1,5 +1,3 @@
-# API_KEY_FRED = "42268b215ff43235d6f0b60aaf9008a4"
-
 import pandas as pd
 import requests
 import json
