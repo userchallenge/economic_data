@@ -9,6 +9,7 @@ import configparser
 
 import pandas as pd
 
+
 from economic_data.extract.economic_data import (
     fetch_ecb_json,
     fetch_eurostat_json,
@@ -22,6 +23,8 @@ from economic_data.transform.transform_economic_data import (
     label_and_append,
     set_monthly_ecb_interest_rate,
     rename_economic_indicators,
+    threshold_csv_to_df,
+    load_thresholds,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,6 +37,7 @@ config.read(CONFIG)
 API_KEY_FRED = config["API_KEYS"]["FRED"]
 FROM_DATE = config["DATE_RANGE"]["FROM_DATE"]
 TO_DATE = config["DATE_RANGE"]["TO_DATE"]
+THRESHOLD_FILE = config["FILES"]["ECONOMIC_THRESHOLDS"]
 
 
 def main():
@@ -55,10 +59,10 @@ def main():
     ecb_interest_rate_df = ecb_json_to_df(
         ecb_interest_json, "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV"
     )
-
     us_unemployment_df = fred_json_to_df(fred_unemployment_json, FROM_DATE)
     us_cpi_df = fred_json_to_df(fred_cpi_json, FROM_DATE)
     us_fed_funds_rate_df = fred_json_to_df(fred_fedfunds_json, FROM_DATE)
+    thresholds_df = threshold_csv_to_df(THRESHOLD_FILE)
 
     dfs_to_merge = []
     label_and_append(
@@ -120,13 +124,17 @@ def main():
             f"Data extraction and transformation completed successfully with final df shape {final_df.shape}."
         )
         logger.info(final_df.groupby("indicator").size())
-        final_df.to_excel(
-            "tmp_output/economic_data_summary.xlsx",
-            index=False,
-            engine="openpyxl",
-        )
+
     else:
         logger.info("No data to show.")
+
+    # Load thresholds
+    final_df = load_thresholds(final_df, thresholds_df)
+    final_df.to_excel(
+        "tmp_output/economic_data_summary.xlsx",
+        index=False,
+        engine="openpyxl",
+    )
     return final_df
 
 

@@ -1,5 +1,7 @@
 import pandas as pd
 import logging
+import numpy as np
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +167,6 @@ def set_monthly_ecb_interest_rate(df, start_date=None):
     )
 
     # Backfill months before first change using the earliest known rate
-    # monthly["value"] = monthly["value"].fillna(method="bfill")
     monthly = monthly.fillna(method="bfill")
 
     # Final cleanup
@@ -199,4 +200,139 @@ def rename_economic_indicators(df):
         "Eurozone Interest Rate (Main Refinancing Operations)": "interest_rate_change_day_euro",
     }
     df["indicator"] = df["indicator"].replace(renaming_map)
+    return df
+
+
+def threshold_csv_to_df(file):
+    """
+    Reads a CSV file containing economic thresholds and normalizes the ranges.
+    The CSV should have columns like:
+    - indicator: Name of the economic indicator
+    - good_range: Range for "good" condition (e.g., "0.0% – 0.2% or 0.4% – 0.8%")
+    - medium_range: Range for "medium" condition
+    - bad_range: Range for "bad" condition
+    Returns a DataFrame with normalized ranges for each condition.
+    """
+
+    thresholds_df = pd.read_csv(file)
+
+    def parse_range_expression(indicator, label, expr):
+        """
+        Parses a string like "0.0% – 0.2% or 0.4% – 0.8%" into multiple numeric range rows.
+
+        Returns a list of dicts with:
+        - min_val / max_val (float or +/-inf)
+        - inclusive_min / inclusive_max (bools)
+        - indicator and label for later joins
+        """
+        parts = re.split(r"\s+or\s+", expr)
+        parsed = []
+
+        for part in parts:
+            part = part.strip().replace("%", "").replace("–", "-").replace("−", "-")
+            if part.startswith("<"):
+                val = float(part[1:].strip())
+                parsed.append(
+                    {
+                        "indicator": indicator,
+                        "label": label,
+                        "min_val": -np.inf,
+                        "max_val": val,
+                        "inclusive_min": False,
+                        "inclusive_max": True,
+                    }
+                )
+            elif part.startswith(">"):
+                val = float(part[1:].strip())
+                parsed.append(
+                    {
+                        "indicator": indicator,
+                        "label": label,
+                        "min_val": val,
+                        "max_val": np.inf,
+                        "inclusive_min": False,
+                        "inclusive_max": False,
+                    }
+                )
+            elif "-" in part:
+                min_val, max_val = map(lambda x: float(x.strip()), part.split("-"))
+                parsed.append(
+                    {
+                        "indicator": indicator,
+                        "label": label,
+                        "min_val": min_val,
+                        "max_val": max_val,
+                        "inclusive_min": True,
+                        "inclusive_max": True,
+                    }
+                )
+
+        return parsed
+
+    # --- Step 3: Normalize the whole table ---
+    normalized_rows = []
+    for _, row in thresholds_df.iterrows():
+        for label in ["good", "medium", "bad"]:
+            expr = row[f"{label}_range"]
+            normalized_rows.extend(
+                parse_range_expression(row["indicator"], label, expr)
+            )
+
+    thresholds_normalized_df = pd.DataFrame(normalized_rows)
+
+    thresholds_normalized_df = thresholds_normalized_df.drop_duplicates().reset_index(
+        drop=True
+    )
+    label_score_map = {"good": 2, "medium": 1, "bad": 0}
+    thresholds_normalized_df["score"] = thresholds_normalized_df["label"].map(
+        label_score_map
+    )
+
+    return thresholds_normalized_df
+
+
+def load_thresholds(df, thresholds_df):
+
+    # --- Assign score to each row in financial data ---
+    def assign_score(value, indicator, thresholds_df):
+        """
+        Finds the matching score for a given value and indicator.
+
+        Args:
+            value (float): The numeric value to evaluate
+            indicator (str): Name of the indicator
+            thresholds_df (pd.DataFrame): Normalized threshold definitions
+
+        Returns:
+            int or None: Score (0 = bad, 1 = medium, 2 = good), or None if no match
+        """
+        relevant = thresholds_df[thresholds_df["indicator"] == indicator]
+
+        for _, row in relevant.iterrows():
+            lower_ok = (
+                value > row["min_val"]
+                if not row["inclusive_min"]
+                else value >= row["min_val"]
+            )
+            upper_ok = (
+                value < row["max_val"]
+                if not row["inclusive_max"]
+                else value <= row["max_val"]
+            )
+            if lower_ok and upper_ok:
+                return row["score"]
+        return (
+            None  # fallback if no match (shouldn't happen if thresholds are exhaustive)
+        )
+
+    # --- Run logic using your in-memory dataframes ---
+    # thresholds_df and financial_df should already exist
+    # thresholds_normalized_df = normalize_threshold_table(thresholds_df)
+
+    # Apply scores in place
+    df["score"] = df.apply(
+        lambda row: assign_score(row["value"], row["indicator"], thresholds_df),
+        axis=1,
+    )
+
     return df
