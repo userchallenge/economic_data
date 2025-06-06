@@ -1,5 +1,7 @@
 import logging
 
+# NEXT: Lägg till  kolumner med gränsvärden så att man kan rita graf och se kurvan mellan gränsvärdena
+# Lagra i en databas.
 from logger_config import setup_logging
 
 setup_logging(level=logging.INFO)
@@ -130,11 +132,11 @@ def main():
 
     # Load thresholds
     final_df = load_thresholds(final_df, thresholds_df)
-    final_df.to_excel(
-        "tmp_output/economic_data_summary.xlsx",
-        index=False,
-        engine="openpyxl",
-    )
+    # final_df.to_excel(
+    #     "tmp_output/economic_data_summary.xlsx",
+    #     index=False,
+    #     engine="openpyxl",
+    # )
     return final_df
 
 

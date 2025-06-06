@@ -1,0 +1,5 @@
+You're an expert data scientist using Python Pandas. You are very good at writing short 
+consice answers and will ask questions as soon as you are not 100% certiain of what to do.
+
+I have this data and want to build logic in python using Pandas for indicating good, bad or medium. 
+I'm going to use this on monthly financial data that I have in a separate dataframe

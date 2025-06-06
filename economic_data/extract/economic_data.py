@@ -3,6 +3,8 @@ import requests
 import json
 import logging
 
+import gspread
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,3 +122,94 @@ def fetch_fred_json(series_id, api_key, from_date, to_date):
     )
     logger.debug(f"FRED URL: {url}")
     return fetch_json(url)
+
+
+def get_historical_stock_data(
+    symbol, service_account_file_path, worksheet_id, start_date="2020-01-01"
+):
+    """
+    Fetches historical stock data for a given symbol from a Google Sheet.
+    This function updates the Google Sheet with the specified stock symbol and start date,
+    then retrieves the data from the 'output' worksheet.
+    Parameters:
+    ----------
+    symbol : str
+        The stock symbol to fetch data for (e.g., 'AAPL' for Apple Inc.).
+    service_account_file_path : str
+        Path to the Google service account JSON file for authentication.
+    worksheet_id : str
+        The ID of the Google Sheet to access.
+    start_date : str, optional
+
+        The start date for the stock data in 'YYYY-MM-DD' format. Default is '2020-01-01'.
+    Returns:
+    -------
+    list
+        A list of dicts containing the stock data from the 'output' worksheet.
+    """
+
+    # NEXT: Gör transform till df på denna data och fixa config där det går.
+
+    SERVICE_ACCOUNT_FILE = (
+        service_account_file_path  # "config/stock-data-462106-4b3b621b4a82.json"
+    )
+    SPREADSHEET_ID = worksheet_id  # "1Ih_rIE-woq0gkrBd5snyl8IxJP0GtM2iVKdPP53TRsM"
+
+    # set symbol
+    def select_symbol(symbol, date):
+        """
+        Selects a stock symbol in the Google Sheet and sets the start date.
+
+        Parameters:
+        ----------
+        symbol : str
+            The stock symbol to set in the Google Sheet.
+        start_date : str
+
+            The start date for the stock data in 'YYYY-MM-DD' format.
+        """
+
+        try:
+            gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+            spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+            worksheet = spreadsheet.worksheet("Data")  # TODO gör dynamisk
+
+            # Set symbol in dropdown cell
+            worksheet.update_cell(1, 2, symbol)
+            # Set start date
+            worksheet.update_cell(2, 2, date)  # Row 2, Column 1
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    try:
+        # select symbol to fetch data for
+        select_symbol(symbol, start_date)
+
+        # Authenticate with the service account
+        gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+
+        # Open the spreadsheet by its ID
+        spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+
+        # Select the worksheet (e.g., 'Sheet1' or by index 0 for the first sheet)
+        worksheet = spreadsheet.worksheet(
+            "output"  # TODO - gör config
+        )  # Or worksheet = spreadsheet.get_worksheet(0)
+
+        # Get all records (data from all rows as a list of dictionaries)
+        # data = worksheet.get_all_records()
+        data = worksheet.get_all_values()  # to include comma signs
+
+        if not data:
+            print("No data found.")
+            return []
+
+        # print("Daily Financial Data:")
+        # for row in data:
+        #     print(row)
+        return data
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
