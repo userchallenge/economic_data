@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from economic_data.db.schema import EconomicIndicator
 from economic_data.db.create_db import create_database
+from economic_data.db.reset_db import remove_database
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 db_file = os.path.join(current_dir, "economic_data", "db", "economic_data.sqlite")
@@ -55,7 +56,8 @@ def read_data_with_pandas():
 
 
 if __name__ == "__main__":
+    # remove_database()
     create_database()
-    print(f"Using database file at: {db_file}")
-    insert_sample_data()
-    read_data_with_pandas()
+    # print(f"Using database file at: {db_file}")
+    # insert_sample_data()
+    # read_data_with_pandas()

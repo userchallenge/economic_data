@@ -2,6 +2,7 @@
 
 config/
 tmp_output/
+*.sqlite
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

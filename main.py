@@ -1,7 +1,6 @@
 import logging
 
-# NEXT: Lägg till  kolumner med gränsvärden så att man kan rita graf och se kurvan mellan gränsvärdena
-# Lagra i en databas.
+
 from logger_config import setup_logging
 
 setup_logging(level=logging.INFO)
@@ -16,6 +15,7 @@ from economic_data.extract.economic_data import (
     fetch_ecb_json,
     fetch_eurostat_json,
     fetch_fred_json,
+    get_historical_stock_data,
 )
 from economic_data.transform.transform_economic_data import (
     calculate_monthly_change,
@@ -28,6 +28,7 @@ from economic_data.transform.transform_economic_data import (
     threshold_csv_to_df,
     load_thresholds,
 )
+from economic_data.load.save_data import save_stock_index
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,14 @@ API_KEY_FRED = config["API_KEYS"]["FRED"]
 FROM_DATE = config["DATE_RANGE"]["FROM_DATE"]
 TO_DATE = config["DATE_RANGE"]["TO_DATE"]
 THRESHOLD_FILE = config["FILES"]["ECONOMIC_THRESHOLDS"]
+SERVICE_ACCOUNT_FILE = config["GOOGLE_HISTORICAL_DATA"]["API_KEY_FILE"]
+SPREADSHEET_ID = config["GOOGLE_HISTORICAL_DATA"]["ID"]
 
 
 def main():
     logger.info("Starting economic data extraction and transformation...")
 
-    # Extract
+    # Extract - economic indicators
     eurostat_hicp_json = fetch_eurostat_json("prc_hicp_mmor", FROM_DATE)
     eurostat_unemployment_json = fetch_eurostat_json("ei_lmhr_m", FROM_DATE)
     ecb_interest_json = fetch_ecb_json(
@@ -54,6 +57,11 @@ def main():
     fred_unemployment_json = fetch_fred_json("UNRATE", API_KEY_FRED, FROM_DATE, TO_DATE)
     fred_cpi_json = fetch_fred_json("CPIAUCSL", API_KEY_FRED, FROM_DATE, TO_DATE)
     fred_fedfunds_json = fetch_fred_json("DFF", API_KEY_FRED, FROM_DATE, TO_DATE)
+
+    # Extract - Stocks and Indices
+    omx_smi_dict = get_historical_stock_data(
+        "INDEXNASDAQ:OMXSPI", SERVICE_ACCOUNT_FILE, SPREADSHEET_ID, FROM_DATE
+    )
 
     # Transform
     hicp_euro_df = eurostat_json_to_df(eurostat_hicp_json, "prc_hicp_mmor")
@@ -65,6 +73,9 @@ def main():
     us_cpi_df = fred_json_to_df(fred_cpi_json, FROM_DATE)
     us_fed_funds_rate_df = fred_json_to_df(fred_fedfunds_json, FROM_DATE)
     thresholds_df = threshold_csv_to_df(THRESHOLD_FILE)
+
+    # Transform - Stocks and Indices
+    save_stock_index
 
     dfs_to_merge = []
     label_and_append(
@@ -89,6 +100,7 @@ def main():
         "Percent per annum",
         dfs_to_merge,
     )
+
     # add ECB interest rate with monthly frequency
     ecb_monthly_interest_rate_df = set_monthly_ecb_interest_rate(
         ecb_interest_rate_df, FROM_DATE
