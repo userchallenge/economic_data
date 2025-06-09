@@ -167,7 +167,8 @@ def set_monthly_ecb_interest_rate(df, start_date=None):
     )
 
     # Backfill months before first change using the earliest known rate
-    monthly = monthly.fillna(method="bfill")
+    # monthly = monthly.fillna(method="bfill")
+    monthly = monthly.bfill()
 
     # Final cleanup
     monthly["date"] = monthly["month_start"]

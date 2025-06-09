@@ -148,7 +148,9 @@ def get_historical_stock_data(
         A list of dicts containing the stock data from the 'output' worksheet.
     """
 
-    # NEXT: Gör transform till df på denna data och fixa config där det går.
+    # NEXT: Transform-biten för index till något som kan batch eller sparas enskilt. Använd mer generella save och load-funktioner.
+    # Spara index meta data först och sen kursdata
+    # TODO: Gör transform till df på denna data och fixa config där det går.
 
     SERVICE_ACCOUNT_FILE = (
         service_account_file_path  # "config/stock-data-462106-4b3b621b4a82.json"

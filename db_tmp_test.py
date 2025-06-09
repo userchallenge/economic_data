@@ -56,7 +56,7 @@ def read_data_with_pandas():
 
 
 if __name__ == "__main__":
-    # remove_database()
+    remove_database()
     create_database()
     # print(f"Using database file at: {db_file}")
     # insert_sample_data()

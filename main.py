@@ -28,7 +28,13 @@ from economic_data.transform.transform_economic_data import (
     threshold_csv_to_df,
     load_thresholds,
 )
-from economic_data.load.save_data import save_stock_index
+
+from economic_data.transform.transform_stockmarket_data import (
+    convert_google_finance_index_to_dict,
+    convert_google_finance_data_to_dict,
+)
+
+from economic_data.load.save_data import save_stock_index, save_stock_data
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +66,10 @@ def main():
 
     # Extract - Stocks and Indices
     omx_smi_dict = get_historical_stock_data(
-        "INDEXNASDAQ:OMXSPI", SERVICE_ACCOUNT_FILE, SPREADSHEET_ID, FROM_DATE
+        "INDEXNASDAQ:OMXSPI",
+        SERVICE_ACCOUNT_FILE,
+        SPREADSHEET_ID,
+        FROM_DATE,
     )
 
     # Transform
@@ -75,7 +84,16 @@ def main():
     thresholds_df = threshold_csv_to_df(THRESHOLD_FILE)
 
     # Transform - Stocks and Indices
-    save_stock_index
+    index_omx = convert_google_finance_index_to_dict(
+        omx_smi_dict, "omx_smi", "stokcholms index", "google spreadsheet"
+    )
+    index_omx_id = save_stock_index(
+        index_omx,
+    )
+    data_omx = convert_google_finance_data_to_dict(omx_smi_dict)
+
+    # Save stock data
+    save_stock_data(index_omx_id, data_omx)
 
     dfs_to_merge = []
     label_and_append(
