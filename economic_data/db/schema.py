@@ -26,8 +26,9 @@ class EconomicIndicator(Base):
     __tablename__ = "economic_indicators"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    description = Column(String)
+    indicator_id = Column(String, unique=True, nullable=False)  # Official name/id
+    name = Column(String)  # Descriptive name of the indicator that I use
+    description = Column(String)  # Description of the indicator
     unit = Column(String)
     frequency = Column(Enum(Frequency))
     source = Column(String)

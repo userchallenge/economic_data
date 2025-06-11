@@ -95,7 +95,6 @@ def save_stock_data(index_id: int, data: list):
 
         session.add_all(new_records)
         session.commit()
-        # print(f"Inserted {len(new_records)} new records.")
         logger.info(f"Inserted {len(new_records)} new records for index ID {index_id}.")
     except Exception as e:
         session.rollback()

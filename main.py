@@ -74,6 +74,14 @@ def main():
 
     # Transform
     hicp_euro_df = eurostat_json_to_df(eurostat_hicp_json, "prc_hicp_mmor")
+    # ------------------
+    # # Transform - Economic Indicators - inflation_monthly_euro
+    # econ_ind_inflation_monthly_euro = convert_eurostat_infl_ind_to_dict()
+    # data_inflation_monthly_euro = convert_eurostat_infl_data_to_dict
+    # NEXT! DETTA
+    # ------------------
+
+    hicp_euro_df = rename_economic_indicators(hicp_euro_df)
     unemployment_euro_df = eurostat_json_to_df(eurostat_unemployment_json, "ei_lmhr_m")
     ecb_interest_rate_df = ecb_json_to_df(
         ecb_interest_json, "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV"

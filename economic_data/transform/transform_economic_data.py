@@ -33,6 +33,53 @@ def eurostat_json_to_df(data_json, data_code):
         return None
 
 
+# SKA ERSÄTTAS MED NEDAN
+
+
+def _convert_frequency_code_to_enum(frequency_str):
+    # convert frequency string to Frequency enum
+    from economic_data.db.schema import Frequency
+
+    if frequency_str == "D":
+        return Frequency.daily
+    elif frequency_str == "M":
+        return Frequency.monthly
+    elif frequency_str == "Q":
+        return Frequency.quarterly
+    elif frequency_str == "A":
+        return Frequency.yearly
+    else:
+        raise ValueError(f"Unknown frequency: {frequency_str}")
+
+
+def convert_eurostat_infl_ind_to_dict(data_json, name, description):
+    """
+    Converts Eurostat inflation index data to a dictionary format.
+    Parameters:
+    - data_json: JSON data from Eurostat API.
+    - name: Name of the indicator.
+    - description: Description of the indicator.
+    Returns:
+    - Dictionary with keys 'indicator_id', 'name', 'description', 'unit', 'frequency', and 'source'.
+    """
+
+    index_dict = {
+        "indicator_id": data_json["label"],
+        "name": name,
+        "description": description,
+        "unit": "percent",
+        "frequency": _convert_frequency_code_to_enum(
+            list(data_json["dimension"]["freq"]["category"]["label"].keys())[0]
+        ),
+        "source": data_json["source"],
+    }
+    logger.info(f"Creating index data for {index_dict['name']}")
+    return index_dict
+
+
+# SLUT --------------------
+
+
 def ecb_json_to_df(data_json, dataflow_ref, series_key):
     """
     Transforms ECB JSON to DataFrame.
