@@ -1,6 +1,7 @@
 # economic_data/load/save_data.py
 import logging
 from sqlalchemy.exc import IntegrityError
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +15,29 @@ from economic_data.db.schema import (
 from economic_data.db.session import Session
 
 
-def save_economic_indicator(indicator_data: dict):
+def save_indicator(indicator_data: dict):
     session = Session()
     try:
         indicator = EconomicIndicator(**indicator_data)
         session.add(indicator)
         session.commit()
         return indicator.id
+    except IntegrityError:
+        # Handle unique constraint violation
+
+        session.rollback()
+        logger.info(
+            f"Indicator with name '{indicator_data['indicator_id']}' already exists. Skipping."
+        )
+
+        # Optionally: return the existing ID
+        existing = (
+            session.query(EconomicIndicator)
+            .filter_by(indicator_id=indicator_data["indicator_id"])
+            .first()
+        )
+        return existing.id if existing else None
+
     except Exception as e:
         session.rollback()
         raise e
@@ -31,10 +48,32 @@ def save_economic_indicator(indicator_data: dict):
 def save_indicator_data(indicator_id: int, data: list):
     session = Session()
     try:
+        # Fetch all existing (indicator_id, date) combinations
+        existing = set(
+            session.query(EconomicIndicatorData.date)
+            .filter(EconomicIndicatorData.indicator_id == indicator_id)
+            .all()
+        )
+        # Flatten from list of tuples to set of dates
+        existing_dates = {d[0] for d in existing}
+
+        new_records = []
         for entry in data:
-            record = EconomicIndicatorData(indicator_id=indicator_id, **entry)
-            session.add(record)
+            entry_date = entry["date"]
+            if isinstance(entry_date, pd.Timestamp):
+                entry_date = entry_date.date()
+            if entry_date not in existing_dates:
+                # Make sure to update the entry dict as well
+                entry["date"] = entry_date
+                new_records.append(
+                    EconomicIndicatorData(indicator_id=indicator_id, **entry)
+                )
+
+        session.add_all(new_records)
         session.commit()
+        logger.info(
+            f"Inserted {len(new_records)} new records for indicator ID {indicator_id}."
+        )
     except Exception as e:
         session.rollback()
         raise e
@@ -53,9 +92,6 @@ def save_stock_index(index_data: dict):
         # Handle unique constraint violation
 
         session.rollback()
-        # print(
-        #     f"Stock index with ticker_id '{index_data['ticker_id']}' already exists. Skipping."
-        # )
         logger.info(
             f"Stock index with ticker_id '{index_data['ticker_id']}' already exists. Skipping."
         )

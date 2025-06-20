@@ -3,11 +3,11 @@ from economic_data.analyse.pandas_analysis import (
     load_indicator_df,
     calculate_rolling_average,
 )
-from economic_data.load.save_data import save_economic_indicator, save_indicator_data
+from economic_data.load.save_data import save_indicator, save_indicator_data
 
 
 def test_rolling_average():
-    indicator_id = save_economic_indicator(
+    indicator_id = save_indicator(
         {"name": "Retail Sales", "unit": "SEK", "description": "Retail sales test"}
     )
 

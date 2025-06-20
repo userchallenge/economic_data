@@ -39,6 +39,10 @@ class EconomicIndicator(Base):
 
 class EconomicIndicatorData(Base):
     __tablename__ = "economic_indicator_data"
+    __table_args__ = (
+        # Ensure (index_id, date) is unique
+        UniqueConstraint("indicator_id", "date", name="uix_indicator_id_date"),
+    )
 
     id = Column(Integer, primary_key=True)
     indicator_id = Column(Integer, ForeignKey("economic_indicators.id"), nullable=False)

@@ -33,10 +33,17 @@ def eurostat_json_to_df(data_json, data_code):
         return None
 
 
-# SKA ERSÄTTAS MED NEDAN
+# INDEX skapas nedan
 
 
 def _convert_frequency_code_to_enum(frequency_str):
+    """Converts a frequency string from Eurostat to a Frequency enum.
+    Parameters:
+    - frequency_str: A string representing the frequency, e.g., "D", "M", "Q", "A".
+    Returns:
+    - Frequency enum value corresponding to the input string.
+    Raises:
+    - ValueError: If the frequency string is unknown."""
     # convert frequency string to Frequency enum
     from economic_data.db.schema import Frequency
 
@@ -75,6 +82,38 @@ def convert_eurostat_infl_ind_to_dict(data_json, name, description):
     }
     logger.info(f"Creating index data for {index_dict['name']}")
     return index_dict
+
+
+# def _extract_months_values(data_json):
+#     data_json = dict
+
+#     time_mapping = data_json["dimension"]["time"]["category"]["index"]
+#     time_list = sorted(time_mapping.keys(), key=lambda x: time_mapping[x])
+#     available_indexes = set(map(int, data_json.get("value", {}).keys()))
+#     months, values = [], []
+#     for i, time in enumerate(time_list):
+#         if i in available_indexes:
+#             months.append(time)
+#             values.append(data_json["value"][str(i)])
+#         else:
+#             months.append(time)
+#             values.append(None)
+
+
+def convert_eurostat_infl_data_to_dict(data_json, data_code):
+    """
+    id = Column(Integer, primary_key=True)
+    indicator_id = Column(Integer, ForeignKey("economic_indicators.id"), nullable=False)
+    date = Column(Date, nullable=False)
+    value = Column(Float, nullable=False)
+    """
+    data = eurostat_json_to_df(data_json, data_code)
+
+    # convert the dataframe to a list of dictionaries
+    data_list = data.to_dict(orient="records")
+
+    logger.info(f"Creating index data for {data_code}")
+    return data_list
 
 
 # SLUT --------------------

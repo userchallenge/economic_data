@@ -6,7 +6,7 @@ from economic_data.load.load_data import (
     get_thresholds_for_indicator,
 )
 from economic_data.load.save_data import (
-    save_economic_indicator,
+    save_indicator,
     save_indicator_data,
     save_stock_index,
     save_stock_data,
@@ -15,15 +15,13 @@ from economic_data.load.save_data import (
 
 
 def test_get_all_indicators():
-    save_economic_indicator(
-        {"name": "Inflation", "unit": "%", "description": "Inflation test"}
-    )
+    save_indicator({"name": "Inflation", "unit": "%", "description": "Inflation test"})
     results = get_all_indicators()
     assert any(i.name == "Inflation" for i in results)
 
 
 def test_get_indicator_data():
-    indicator_id = save_economic_indicator(
+    indicator_id = save_indicator(
         {"name": "Unemployment", "unit": "%", "description": "Unemployment test"}
     )
 
@@ -57,7 +55,7 @@ def test_get_stock_data():
 
 
 def test_get_thresholds_for_indicator():
-    indicator_id = save_economic_indicator(
+    indicator_id = save_indicator(
         {"name": "GDP Growth", "unit": "%", "description": "GDP growth test"}
     )
     save_threshold(

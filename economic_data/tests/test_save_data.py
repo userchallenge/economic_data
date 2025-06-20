@@ -1,6 +1,6 @@
 import pytest
 from economic_data.load.save_data import (
-    save_economic_indicator,
+    save_indicator,
     save_indicator_data,
     save_stock_index,
     save_stock_data,
@@ -24,14 +24,14 @@ def test_save_economic_indicator(db_session):
         "unit": "%",
         "description": "Test rate",
     }
-    indicator_id = save_economic_indicator(data)
+    indicator_id = save_indicator(data)
     result = db_session.query(EconomicIndicator).get(indicator_id)
     assert result is not None
     assert result.name == "Test Interest Rate"
 
 
 def test_save_indicator_data(db_session):
-    indicator_id = save_economic_indicator(
+    indicator_id = save_indicator(
         {
             "name": "GDP",
             "unit": "Billion",
@@ -90,7 +90,7 @@ def test_save_stock_data(db_session):
 
 
 def test_save_threshold(db_session):
-    indicator_id = save_economic_indicator(
+    indicator_id = save_indicator(
         {
             "name": "Inflation Rate",
             "unit": "%",
