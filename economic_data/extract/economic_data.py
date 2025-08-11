@@ -148,8 +148,6 @@ def get_historical_stock_data(
         A list of dicts containing the stock data from the 'output' worksheet.
     """
 
-    # NEXT:
-    # KPI-data
     # TODO: Gör transform till df på denna data och fixa config där det går.
     # Transform-biten för index till något som kan batch eller sparas enskilt. Använd mer generella save och load-funktioner.
 

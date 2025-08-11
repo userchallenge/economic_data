@@ -33,8 +33,19 @@ from economic_data.transform.transform_stockmarket_data import (
     convert_google_finance_index_to_dict,
     convert_google_finance_data_to_dict,
 )
+from economic_data.transform.transform_economic_data import (
+    convert_eurostat_infl_ind_to_dict,
+    convert_eurostat_infl_data_to_dict,
+    # convert_eurostat_unemployment_to_dict,
+    # convert_eurostat_gdp_to_dict,
+)
 
-from economic_data.load.save_data import save_stock_index, save_stock_data
+from economic_data.load.save_data import (
+    save_stock_index,
+    save_stock_data,
+    save_indicator,
+    save_indicator_data,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +66,7 @@ def main():
     logger.info("Starting economic data extraction and transformation...")
 
     # Extract - economic indicators
-    eurostat_hicp_json = fetch_eurostat_json("prc_hicp_mmor", FROM_DATE)
+    inflation_euro_json = fetch_eurostat_json("prc_hicp_mmor", FROM_DATE)
     eurostat_unemployment_json = fetch_eurostat_json("ei_lmhr_m", FROM_DATE)
     ecb_interest_json = fetch_ecb_json(
         "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV", FROM_DATE, TO_DATE
@@ -72,16 +83,23 @@ def main():
         FROM_DATE,
     )
 
-    # Transform
-    hicp_euro_df = eurostat_json_to_df(eurostat_hicp_json, "prc_hicp_mmor")
-    # ------------------
-    # # Transform - Economic Indicators - inflation_monthly_euro
-    # econ_ind_inflation_monthly_euro = convert_eurostat_infl_ind_to_dict()
-    # data_inflation_monthly_euro = convert_eurostat_infl_data_to_dict
-    # NEXT! DETTA
-    # ------------------
+    # Transform - Economic Indicators
+    # TODO: Döp om alla namn på formatet <KPI><Region><typ av data>
+    # T ex inflation_euro_indicator_id
+    inflation_euro_df = eurostat_json_to_df(inflation_euro_json, "prc_hicp_mmor")
+    inflation_euro_indicator = convert_eurostat_infl_ind_to_dict(
+        inflation_euro_json,
+        "inflation_monthly_euro",
+        "Monthly inflation rate in EURO area",
+    )
+    inflation_euro_data = convert_eurostat_infl_data_to_dict(
+        inflation_euro_json, "prc_hicp_mmor"
+    )
 
-    hicp_euro_df = rename_economic_indicators(hicp_euro_df)
+    # inflation_euro_df = rename_economic_indicators(
+    #     inflation_euro_df
+    # )  # TODO: Denna ska nog tas bort
+    # NEXT: Fixa resten av indicators
     unemployment_euro_df = eurostat_json_to_df(eurostat_unemployment_json, "ei_lmhr_m")
     ecb_interest_rate_df = ecb_json_to_df(
         ecb_interest_json, "FM", "B.U2.EUR.4F.KR.MRR_FR.LEV"
@@ -95,17 +113,24 @@ def main():
     index_omx = convert_google_finance_index_to_dict(
         omx_smi_dict, "omx_smi", "stokcholms index", "google spreadsheet"
     )
+
+    data_omx = convert_google_finance_data_to_dict(omx_smi_dict)
+
+    # Load - Save stock data
     index_omx_id = save_stock_index(
         index_omx,
     )
-    data_omx = convert_google_finance_data_to_dict(omx_smi_dict)
-
-    # Save stock data
     save_stock_data(index_omx_id, data_omx)
+
+    # Load - Save economic indicator data
+    inflation_euro_indicator_id = save_indicator(inflation_euro_indicator)
+    save_indicator_data(inflation_euro_indicator_id, inflation_euro_data)
+
+    # -------------------
 
     dfs_to_merge = []
     label_and_append(
-        hicp_euro_df,
+        inflation_euro_df,
         "Eurozone HICP (Monthly Rate of Change)",
         "Eurostat",
         "Percent",
